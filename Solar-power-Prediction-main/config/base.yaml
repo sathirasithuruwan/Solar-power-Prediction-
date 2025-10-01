@@ -1,0 +1,102 @@
+seed: 123
+device: cuda                 # "cuda" or "cpu"
+results_base: results/enc/cyclic
+save_predictions: false
+
+run:
+  model: all                 # "lstm" | "transformer" | "cnn_transformer" | "llama_ts" | "cnn" | "cnn_lstm" | "bilstm" | "all"
+
+time_encoding:
+  scheme: cyclic             # basic|none|cyclic|sinusoidal|fourier
+  params:
+    # for sinusoidal: d_hour: 8, d_dow: 8, d_mon: 8, prefix: "pe"
+    # for fourier:    k_hour: 3, k_dow: 2, k_mon: 2, prefix: "fourier"
+
+# --- OPTIONAL: lag/rolling features (off by default) ---
+lag_features:
+  cols: []                   # [] => auto-pick numeric base features
+  lags: []                   # e.g., [1,2,3]
+  windows: []                # e.g., [3,6]
+
+dataloaders:
+  csv_file: data/Solar_Power_Weather_Clean_MASTER.csv
+  target_col: y_norm
+  # base features FROM MASTER ONLY (no engineered time cols here)
+  feature_cols:
+    - ApparentTemperature
+    - AirTemperature
+    - DewPointTemperature
+    - RelativeHumidity
+    - CampusKey
+    - SiteKey
+
+  lookback: 24
+  horizon: 1
+  batch_size: 128
+  train_frac: 0.01
+  val_frac: 0.01
+  num_workers: 0
+  pin_memory: false
+  shuffle_train: true
+
+training:
+  epochs: 50
+  lr: 0.001
+  weight_decay: 0.0001
+  early_stop_patience: 5
+  early_stop_min_delta: 0.0
+
+models:
+  lstm:
+    name: LSTMForecast
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.2
+
+  transformer:
+    name: TimeSeriesTransformer
+    hidden_dim: 128
+    num_layers: 4
+    dropout: 0.1
+
+  cnn_transformer:
+    name: CNNTransformerHybrid
+    cnn_out_channels: 64
+    kernel_size: 3
+    num_heads: 8
+    hidden_dim: 128
+    num_layers: 4
+    dropout: 0.1
+
+  llama_ts:
+    name: LLaMATimeSeries
+    d_model: 128
+    n_heads: 8
+    n_layers: 4
+    dropout: 0.1
+    max_seq_len: 48
+
+  cnn:
+    name: CNNTimeseries
+    num_filters: 64
+    kernel_size: 3
+    dropout: 0.1
+
+  cnn_lstm:
+    name: CNNLSTMTimeSeries
+    hidden_size: 64
+    num_layers: 1
+    cnn_filters: 32
+    kernel_size: 3
+    dropout: 0.1
+
+  bilstm:
+    name: BiLSTMTimeSeries
+    hidden_size: 64
+    num_layers: 1
+    dropout: 0.1
+
+# --- optional plotting prefs used by test.py ---
+plot:
+  zoom_start_idx: 0
+  zoom_length: 500
